@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "mqtt-vehicle-fleet-sensor-data"
+version = "0.1.0"
+description = ""
+authors = ["Javier <82763996+javiicc@users.noreply.github.com>"]
+readme = "README.md"
+package-mode = true
+
+[tool.poetry.dependencies]
+python = "^3.12"
+paho-mqtt = "^2.1.0"
+pandas = "^2.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
