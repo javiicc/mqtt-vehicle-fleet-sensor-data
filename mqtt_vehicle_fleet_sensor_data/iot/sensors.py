@@ -64,4 +64,4 @@ if __name__ == "__main__":
     # print(thermistor.read())
 
     gps = GPS("dublin-limerick")
-    print(gps.read())
+    print(gps.read("van-1"))
