@@ -16,8 +16,6 @@ class MQTTSubscriber:
             self.client.loop_forever()
         except ConnectionRefusedError as exc:
             print(f"{exc.__class__.__name__}: {exc}")
-        finally:
-            print('See you soon!')
 
     def _create_client(self):
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
