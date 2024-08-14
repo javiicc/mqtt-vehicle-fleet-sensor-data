@@ -3,7 +3,7 @@ from enum import Enum
 from multiprocessing import active_children, current_process
 import sys
 
-from mqtt_vehicle_fleet_sensor_data.publishers.vehicles import Van
+from mqtt_vehicle_fleet_sensor_data.publishers.vehicles import Truck, Van
 import typer
 
 
@@ -14,7 +14,10 @@ class VehicleType(Enum):
 
 def start_vehicle(id: str, vehicle_type: VehicleType, route: str) -> None:
     try:
-        Van(id, route).run()
+        if vehicle_type == VehicleType.VAN:
+            Van(id, route).run()
+        elif vehicle_type == VehicleType.TRUCK:
+            Truck(id, route).run()
     except KeyboardInterrupt:
         print(f"Worker {current_process().name} interrupted")
 
@@ -35,18 +38,12 @@ def cleanup(executor):
     print("ACTIVE CHILDRENS:\n", active_children())
 
 
-def main():
-    # TODO environment variable
-    n_vans = 4
-    n_trucks = 0
-
+def main(van_number: int = 1, truck_number: int = 0):
     try:
-        with ProcessPoolExecutor(max_workers=4) as executor:
-
-            futures = [
-                # TODO automate routes probabilistically
-                executor.submit(start_vehicle, f"van-{i}", VehicleType.VAN, "dublin-limerick") for i in range(1, n_vans + 1)
-            ]  # does not block
+        with ProcessPoolExecutor() as executor:
+            # TODO automate routes probabilistically
+            [ executor.submit(start_vehicle, f"van-{i}", VehicleType.VAN, "dublin-limerick") for i in range(1, van_number + 1) ]
+            [ executor.submit(start_vehicle, f"truck-{i}", VehicleType.TRUCK, "dublin-limerick") for i in range(1, truck_number + 1) ]
     except KeyboardInterrupt:
         cleanup(executor)
         sys.exit()

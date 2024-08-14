@@ -32,3 +32,18 @@ services:
       - /Users/javideveloper/work/mqtt-vehicle-fleet-sensor-data/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - /Users/javideveloper/work/mqtt-vehicle-fleet-sensor-data/mosquitto/data:/mosquitto/data
       - /Users/javideveloper/work/mqtt-vehicle-fleet-sensor-data/mosquitto/log:/mosquitto/log
+
+  mqtt-broker-trucks:
+    container_name: mqtt-broker-trucks
+    image: eclipse-mosquitto:latest
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    ports:
+       - "1885:1883"
+    volumes:
+      - /Users/javideveloper/work/mqtt-vehicle-fleet-sensor-data/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - /Users/javideveloper/work/mqtt-vehicle-fleet-sensor-data/mosquitto/data:/mosquitto/data
+      - /Users/javideveloper/work/mqtt-vehicle-fleet-sensor-data/mosquitto/log:/mosquitto/log
