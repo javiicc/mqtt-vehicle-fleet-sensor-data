@@ -1,105 +1,107 @@
-from enum import Enum
-import json
-import time
-from mqtt_vehicle_fleet_sensor_data.iot.sensors import GPS, Thermistor
-import paho.mqtt.client as mqtt
+from copy import deepcopy
+from mqtt_vehicle_fleet_sensor_data.iot.sensors import Thermistor
+from mqtt_vehicle_fleet_sensor_data.publishers.central_device import CentralDevice
+from mqtt_vehicle_fleet_sensor_data.publishers.vehicle_base import Vehicle
 
 
-class VehicleType(Enum):
-    VAN = 'van'
-    TRUCK = 'truck'
- 
-
-class Engine:
-    def __init__(self) -> None:
-        self.thermistor = Thermistor("engine")
-
-    def read_data(self):
-        return self.thermistor.read()
-
-
-class Vehicle:
-    def __init__(self, id: str, vehicle_type: VehicleType, route: str) -> None:
-        self.id = id
-        self.type = vehicle_type
-        self.engine = Engine()
-        self.gps = GPS(route)
+class Van(Vehicle):
+    def __init__(self, id: str, route: str) -> None:
+        super().__init__(id, route)
+        self.mqtt_broker_fleet = {
+            "name": "fleet",
+            "host": "localhost",
+            "port": 1883
+        }
+        self.mqtt_broker_vans = {
+            "name": "vans",
+            "host": "localhost",
+            "port": 1884
+        }
+        self.mqtt_topic_van = f"fleet/{id}"
+        self.mqtt_topic_van_gps = f"fleet/{id}/gps"
+        self.mqtt_topic_van_cargo_temp = f"fleet/{id}/cargo-temp"
+        self.central_device = CentralDevice([
+            self.mqtt_broker_fleet,
+            self.mqtt_broker_vans,
+        ], self.collect_data)
+        self.cargo_temp_sensor = Thermistor("cargo")
 
     def run(self):
-        self.CentralDevice(self).start_publishing()
+        self.central_device.start_publishing()
 
+    def collect_data(self) -> dict:
+        gps = super().collect_gps_data()
+        cargo_temp = self.cargo_temp_sensor.read()
 
-    class CentralDevice():
-        def __init__(self, outer_vehicle) -> None:
-            self.vehicle = outer_vehicle
-            self.connected = False
-            self.mqtt_broker = "localhost"
-            self.port = 1883
-            # self.mqtt_topic_data = f"fleet/{self.vehicle.id}"
-            self.mqtt_topic_data = "fleet/data"
-            self.mqtt_topic_gps = "fleet/gps"
+        vehicle_data = {
+            "id": self.id,
+            "gps": deepcopy(gps),
+            "engine": super().collect_engine_data(),
+            "cargo_temperature": cargo_temp
+        }
 
-            self._create_client()
+        gps["vehicle_id"] = self.id
+        cargo_temp["vehicle_id"] = self.id
 
-        def start_publishing(self):
-            try:
-                self.mqttc.connect(self.mqtt_broker, self.port, 60)
-                # Start the network loop in a separate thread
-                # self.mqttc.loop_forever()
-                self.mqttc.loop_start() # Non-blocking
-            except ConnectionRefusedError as exc:
-                print(f"{exc.__class__.__name__}: {exc}")
-
-            # Wait for connection to be established
-            while not self.connected:
-                time.sleep(0.1)
-                        
-            while True:
-                self.gps_data = self._collect_coordinates()
-                self.vehicle_data = self._collect_vehicle_data(self.gps_data)
-
-                self.gps_data["vehicle_id"] = self.vehicle.id
-            
-                self.mqttc.publish(
-                    topic=self.mqtt_topic_gps, 
-                    payload=json.dumps(self.gps_data),
-                    )
-                self.mqttc.publish(
-                    topic=self.mqtt_topic_data, 
-                    payload=json.dumps(self.vehicle_data),
-                    )
-            
-                time.sleep(1)
-
-        def _on_connect(self, client, userdata, flags, reason_code, properties):
-            # The callback for when the client receives a CONNACK response from the server
-            print(f"Connected! Result code: {reason_code}")
-            self.connected = True
-
-        def _on_publish(self, client, userdata, mid, reason_code, properties):
-                # reason_code and properties will only be present in MQTTv5. It's always unset in MQTTv3
-
-                # print(mid % 2)
-                # TODO access all published messages, one each mid
-                if mid % 2 == 0:
-                    print(f"Published vehicle data: {self.vehicle_data}")
-                else:
-                    print(f"Published coords: {self.gps_data}")
-
-        def _create_client(self) -> None:
-            self.mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-            # Assign callbacks
-            self.mqttc.on_connect = self._on_connect
-            self.mqttc.on_publish = self._on_publish
-
-        def _collect_coordinates(self) -> dict:
-            gps_data = self.vehicle.gps.read()
-            return gps_data
-        
-        def _collect_vehicle_data(self, gps: dict) -> dict:
-            return {
-                "id": self.vehicle.id,
-                "type": self.vehicle.type.value,
-                "engine_data": self.vehicle.engine.read_data(),
-                "gps": gps
+        return {
+            "data": {
+                "mqtt_topic": self.mqtt_topic_data,
+                "mqtt_broker": self.mqtt_broker_fleet["name"],
+                "msg": vehicle_data
+            },
+            "gps": {
+                "mqtt_topic": self.mqtt_topic_gps,
+                "mqtt_broker": self.mqtt_broker_fleet["name"],
+                "msg": gps
+            },
+            "van": {
+                "mqtt_topic": self.mqtt_topic_van,
+                "mqtt_broker": self.mqtt_broker_vans["name"],
+                "msg": vehicle_data
+            },
+            "van_gps": {
+                "mqtt_topic": self.mqtt_topic_van_gps,
+                "mqtt_broker": self.mqtt_broker_vans["name"],
+                "msg": gps
+            },
+            "van_cargo_temp": {
+                "mqtt_topic": self.mqtt_topic_van_cargo_temp,
+                "mqtt_broker": self.mqtt_broker_vans["name"],
+                "msg": cargo_temp
             }
+        }
+
+
+# class Truck(Vehicle):
+#     def __init__(self, id: str, route: str) -> None:
+#         super().__init__(id, route)
+#         # self.mqtt_topic_data = "fleet/data"
+#         # self.mqtt_topic_gps = "fleet/gps"
+#         self.central_device = CentralDevice()
+#         self.trailer_pressure_sensor = Thermistor("trailer")
+
+#     def run(self):
+#         self.central_device.start_publishing(self._collect_data())
+
+#     def _collect_data(self) -> dict:
+#         gps = super().collect_gps_data()
+
+#         vehicle_data = {
+#             "id": self.id,
+#             "gps": deepcopy(gps),
+#             "engine": super().collect_engine_data(),
+#             "trailer_pressure": self.trailer_pressure_sensor.read()
+#         }
+
+#         gps["vehicle_id"] = self.id
+
+#         return {
+#             "vehicle_data": {
+#                 "mqtt_topic": self.mqtt_topic_data,
+#                 "msg": vehicle_data
+#             },
+#             "gps": {
+#                 "mqtt_topic": self.mqtt_topic_gps,
+#                 "msg": gps
+#             }
+#         }

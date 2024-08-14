@@ -1,11 +1,20 @@
 from concurrent.futures import ProcessPoolExecutor
+from enum import Enum
 from multiprocessing import active_children, current_process
-from mqtt_vehicle_fleet_sensor_data.publishers.vehicles import Vehicle, VehicleType
+import sys
 
+from mqtt_vehicle_fleet_sensor_data.publishers.vehicles import Van
+import typer
+
+
+class VehicleType(Enum):
+    VAN = 'van'
+    TRUCK = 'truck'
+    
 
 def start_vehicle(id: str, vehicle_type: VehicleType, route: str) -> None:
     try:
-        Vehicle(id, vehicle_type, route).run()
+        Van(id, route).run()
     except KeyboardInterrupt:
         print(f"Worker {current_process().name} interrupted")
 
@@ -17,7 +26,7 @@ def terminate_active_children():
         p.join()  # Ensure the child process has fully terminated
 
 
-def cleanup():
+def cleanup(executor):
     print("Main process interrupted. Shutting down...")
     executor.shutdown(wait=False)
 
@@ -26,16 +35,22 @@ def cleanup():
     print("ACTIVE CHILDRENS:\n", active_children())
 
 
-if __name__ == "__main__":
+def main():
     # TODO environment variable
     n_vans = 4
     n_trucks = 0
 
     try:
         with ProcessPoolExecutor(max_workers=4) as executor:
+
             futures = [
                 # TODO automate routes probabilistically
                 executor.submit(start_vehicle, f"van-{i}", VehicleType.VAN, "dublin-limerick") for i in range(1, n_vans + 1)
             ]  # does not block
     except KeyboardInterrupt:
-        cleanup()
+        cleanup(executor)
+        sys.exit()
+
+
+if __name__ == "__main__":
+    typer.run(main)
