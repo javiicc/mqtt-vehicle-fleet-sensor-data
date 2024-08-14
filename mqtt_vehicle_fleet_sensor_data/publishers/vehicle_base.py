@@ -1,5 +1,4 @@
 from mqtt_vehicle_fleet_sensor_data.iot.sensors import GPS, Thermistor
-from mqtt_vehicle_fleet_sensor_data.publishers.central_device import CentralDevice
 
 
 class Engine:
