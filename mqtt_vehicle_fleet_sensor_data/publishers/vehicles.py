@@ -1,6 +1,8 @@
 from copy import deepcopy
 from mqtt_vehicle_fleet_sensor_data.iot.sensors import VoltageDivider
-from mqtt_vehicle_fleet_sensor_data.publishers.central_device import CentralDevice
+from mqtt_vehicle_fleet_sensor_data.publishers.telematic_control_unit import (
+    TelematicConstrolUnit,
+)
 from mqtt_vehicle_fleet_sensor_data.publishers.vehicle_base import Vehicle
 
 
@@ -23,8 +25,8 @@ class Van(Vehicle):
     def run(self):
         self.central_device.start_publishing()
 
-    def create_central_device(self) -> "CentralDevice":
-        return CentralDevice(
+    def create_central_device(self) -> "TelematicConstrolUnit":
+        return TelematicConstrolUnit(
             [
                 self.mqtt_broker_fleet,
                 self.mqtt_broker_vans,
@@ -35,7 +37,7 @@ class Van(Vehicle):
     def collect_data(self) -> dict:
         data = super().collect_data()
 
-        cargo_temp = self.cargo_temp_sensor.voltage()
+        cargo_temp = self.cargo_temp_sensor.get_voltage()
         gps = deepcopy(data["gps"])
         ecu = deepcopy(data["ecu"])
 
@@ -86,7 +88,7 @@ class Truck(Vehicle):
         self.mqtt_topic_truck = f"fleet/{id}"
         self.mqtt_topic_truck_gps = f"fleet/{id}/gps"
         self.mqtt_topic_truck_trailer_pressure = f"fleet/{id}/trailer-pressure"
-        self.central_device = CentralDevice(
+        self.central_device = TelematicConstrolUnit(
             [
                 self.mqtt_broker_fleet,
                 self.mqtt_broker_trucks,
@@ -100,7 +102,7 @@ class Truck(Vehicle):
 
     def collect_data(self) -> dict:
         gps = super().collect_gps_data()
-        trailer_pressure = self.trailer_pressure_sensor.voltage()
+        trailer_pressure = self.trailer_pressure_sensor.get_voltage()
 
         vehicle_data = {
             "id": self.id,

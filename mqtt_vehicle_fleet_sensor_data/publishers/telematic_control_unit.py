@@ -4,7 +4,7 @@ import time
 import paho.mqtt.client as mqtt
 
 
-class CentralDevice:
+class TelematicConstrolUnit:
     def __init__(self, brokers: list, collect_data) -> None:
         self.mqtt_brokers = brokers
         self._collect_data = collect_data
