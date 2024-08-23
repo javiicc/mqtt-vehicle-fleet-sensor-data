@@ -8,9 +8,9 @@ import typer
 
 
 class VehicleType(Enum):
-    VAN = 'van'
-    TRUCK = 'truck'
-    
+    VAN = "van"
+    TRUCK = "truck"
+
 
 def start_vehicle(id: str, vehicle_type: VehicleType, route: str) -> None:
     try:
@@ -42,8 +42,18 @@ def main(van_number: int = 1, truck_number: int = 0):
     try:
         with ProcessPoolExecutor() as executor:
             # TODO automate routes probabilistically
-            [ executor.submit(start_vehicle, f"van-{i}", VehicleType.VAN, "dublin-limerick") for i in range(1, van_number + 1) ]
-            [ executor.submit(start_vehicle, f"truck-{i}", VehicleType.TRUCK, "dublin-limerick") for i in range(1, truck_number + 1) ]
+            [
+                executor.submit(
+                    start_vehicle, f"van-{i}", VehicleType.VAN, "dublin-limerick"
+                )
+                for i in range(1, van_number + 1)
+            ]
+            [
+                executor.submit(
+                    start_vehicle, f"truck-{i}", VehicleType.TRUCK, "dublin-limerick"
+                )
+                for i in range(1, truck_number + 1)
+            ]
     except KeyboardInterrupt:
         cleanup(executor)
         sys.exit()

@@ -23,8 +23,8 @@ class CentralDevice:
         # Wait for connection to be established
         while not self.clients_connected:
             time.sleep(0.1)
-                    
-        while True:         
+
+        while True:
             for event in self._collect_data().values():
                 # Get client already connected to the broker
                 mqttc = self.clients[event["mqtt_broker"]]
@@ -32,7 +32,7 @@ class CentralDevice:
                 self._publish_event.clear()
 
                 result = mqttc.publish(
-                    topic=event["mqtt_topic"], 
+                    topic=event["mqtt_topic"],
                     payload=json.dumps(event["msg"]),
                 )
 
@@ -44,19 +44,20 @@ class CentralDevice:
                     continue
 
                 self._publish_event.wait()
-        
+
             time.sleep(1)
 
     def _on_connect(self, client, userdata, flags, reason_code, properties):
         # The callback for when the client receives a CONNACK response from the server
         print(f"{client} connected! Result code: {reason_code}")
 
-        self.clients_connected = all([ client.is_connected() for client in self.clients.values() ])
-            
+        self.clients_connected = all(
+            [client.is_connected() for client in self.clients.values()]
+        )
 
     def _on_publish(self, client, userdata, mid, reason_code, properties):
         published_message = self.message_store.pop(mid, None)
-        
+
         if published_message:
             print(f"mid {mid}: {published_message}")
         else:
@@ -78,4 +79,4 @@ class CentralDevice:
             self.clients[broker["name"]].connect(broker["host"], broker["port"], 60)
             # Start the network loop in a separate thread
             # self.mqttc.loop_forever()
-            self.clients[broker["name"]].loop_start() # Non-blocking
+            self.clients[broker["name"]].loop_start()  # Non-blocking
