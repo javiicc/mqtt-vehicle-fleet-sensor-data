@@ -3,6 +3,7 @@ import math
 from random import uniform
 from mqtt_vehicle_fleet_sensor_data.iot.sensors import (
     GPS,
+    FuelPressure,
     ManifoldAbsolutePressure,
     VoltageDivider,
 )
@@ -18,12 +19,14 @@ class EngineControlUnit:
     def __init__(self) -> None:
         self.voltage_divider = VoltageDivider()
         self.map = ManifoldAbsolutePressure()
+        self.fuel_pressure = FuelPressure()
 
     def read_data(self):
         return {
             "ect": self._get_engine_coolant_temperature(),
             "iat": self._get_intake_air_temperature(),
             "map": self._get_manifold_absolute_pressure(),
+            "fuel_pressure": self._get_fuel_pressure(),
         }
 
     def _get_engine_coolant_temperature(self) -> float:
@@ -41,6 +44,10 @@ class EngineControlUnit:
     def _get_manifold_absolute_pressure(self) -> float:
         # TODO Values based on normal and non-normal situations
         return self.map.get_voltage(uniform(10.0, 110.0))
+
+    def _get_fuel_pressure(self) -> float:
+        # TODO Values based on normal and non-normal situations
+        return self.fuel_pressure.get_voltage(uniform(200.0, 700.0))
 
 
 class Vehicle(ABC):

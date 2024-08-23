@@ -14,13 +14,13 @@ class Sensor(ABC):
         pass
 
 
-class ManifoldAbsolutePressure:
+class PressureSensor:
     def __init__(
         self,
-        min_pressure: float = 10,
-        max_pressure: float = 110,
-        min_voltage: float = 0.5,
-        max_voltage: float = 4.5,
+        min_pressure: float,
+        max_pressure: float,
+        min_voltage: float,
+        max_voltage: float,
     ):
         """
         Initialize the MAP sensor with its pressure and voltage ranges.
@@ -56,6 +56,28 @@ class ManifoldAbsolutePressure:
             self.max_voltage - self.min_voltage
         ) / (self.max_pressure - self.min_pressure)
         return output_voltage
+
+
+class ManifoldAbsolutePressure(PressureSensor):
+    def __init__(
+        self,
+        min_pressure=0,
+        max_pressure=300,
+        min_voltage=0.5,
+        max_voltage=4.5,
+    ):
+        super().__init__(min_pressure, max_pressure, min_voltage, max_voltage)
+
+
+class FuelPressure(PressureSensor):
+    def __init__(
+        self,
+        min_pressure=200,
+        max_pressure=700,
+        min_voltage=0.5,
+        max_voltage=4.5,
+    ):
+        super().__init__(min_pressure, max_pressure, min_voltage, max_voltage)
 
 
 R_0 = 10000  # Resistance at reference temperature (25°C), in ohms
