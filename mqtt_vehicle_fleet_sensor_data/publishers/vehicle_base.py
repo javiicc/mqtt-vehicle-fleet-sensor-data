@@ -6,6 +6,7 @@ from mqtt_vehicle_fleet_sensor_data.iot.sensors import (
     FuelPressure,
     ManifoldAbsolutePressure,
     O2Sensor,
+    VehicleSpeedSensor,
     VoltageDivider,
 )
 from mqtt_vehicle_fleet_sensor_data.publishers.telematic_control_unit import (
@@ -42,7 +43,7 @@ class PIDController:
 class EngineControlUnit:
     """Vehicle's ECU. Collects and processes data to be read by the Central Device."""
 
-    def __init__(self) -> None:
+    def __init__(self, vss_pulses_per_rotation, vss_wheel_circumference) -> None:
 
         self.voltage_divider = VoltageDivider()
         self.map = ManifoldAbsolutePressure()
@@ -53,13 +54,22 @@ class EngineControlUnit:
         self.oxygen_voltage = self._get_oxygen()
         self.pid_controller = PIDController(kp=0.1, ki=0.01, kd=0.05)
 
-    def read_data(self):
+        # self.vss = vss
+        self.vehicle_speed = 0  # in m/s
+        # self.pulse_frequency = pulse_frequency
+        self.vss_pulses_per_rotation = vss_pulses_per_rotation
+        self.vss_wheel_circumference = vss_wheel_circumference
+
+    def read_data(self, vss_pulse_frequency):
+        self._get_vehicle_speed(vss_pulse_frequency)
+
         data = {
             "ect": self._get_engine_coolant_temperature(),
             "iat": self._get_intake_air_temperature(),
             "map": self._get_manifold_absolute_pressure(),
             "fuel-press": self._get_fuel_pressure(),
             "oxygen": self.oxygen_voltage,
+            "vss": self.vehicle_speed,
         }
 
         self._adjust_fuel_injection()
@@ -88,6 +98,22 @@ class EngineControlUnit:
     def _get_oxygen(self):
         return self.o2_sensor.measure_exhaust_gas(self.air_fuel_ratio)
 
+    def _get_vehicle_speed(self, vss_pulse_frequency):
+        # self.pulse_frequency = self._get_pulse_frequency()
+        self._process_vss_signal(vss_pulse_frequency)
+
+    # def _get_pulse_frequency(self):
+    #     return self.vss.generate_signal(uniform(100, 120))
+
+    def _process_vss_signal(self, vss_pulse_frequency):
+        """Process the signal from the VSS to calculate vehicle speed."""
+
+        # Calculate wheel rotational speed in rotations per second (RPS)
+        wheel_rotational_speed = vss_pulse_frequency / self.vss_pulses_per_rotation
+
+        # Calculate vehicle speed in m/s
+        self.vehicle_speed = wheel_rotational_speed * self.vss_wheel_circumference
+
     def _adjust_fuel_injection(self):
         """Adjust the air-fuel ratio based on the O2 sensor reading and PID control."""
         self.oxygen_voltage = self._get_oxygen()
@@ -115,18 +141,26 @@ class Vehicle(ABC):
         self.id = id
         self.voltage_divider = VoltageDivider()
         self.gps = GPS(route)
-        self.ecu = EngineControlUnit()
-        self.central_device = self.create_central_device()
+        self.vss = VehicleSpeedSensor()
+        self.vss_pulse_frequency = 0
+        self.ecu = EngineControlUnit(
+            self.vss.pulses_per_rotation,
+            self.vss.wheel_circumference,
+        )
+        self.tcu = self.create_tcu()
 
     @abstractmethod
     def run(self):
         pass
 
     @abstractmethod
-    def create_central_device(self) -> "TelematicConstrolUnit":
+    def create_tcu(self) -> "TelematicConstrolUnit":
         pass
 
     def collect_data(self):
+        # Update VSS pulse frequency to be used by ECU
+        self._get_vss_pulse_frequency()
+
         return {
             "id": self.id,
             "gps": self._collect_gps_data(),
@@ -138,10 +172,13 @@ class Vehicle(ABC):
         return self.gps.read()
 
     def _collect_ecu_data(self) -> dict:
-        return self.ecu.read_data()
+        return self.ecu.read_data(self.vss_pulse_frequency)
 
     def _get_cabin_temperature(self) -> float:
         # TODO Temperature values based on system
         voltage = self.voltage_divider.get_voltage(uniform(0.0, 60.0))
         temperature = calculate_temperature_from_voltage(voltage)
         return temperature
+
+    def _get_vss_pulse_frequency(self):
+        self.vss_pulse_frequency = self.vss.generate_signal(uniform(100, 120))

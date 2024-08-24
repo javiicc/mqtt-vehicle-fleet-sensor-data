@@ -23,9 +23,9 @@ class Van(Vehicle):
         super().__init__(id, route)
 
     def run(self):
-        self.central_device.start_publishing()
+        self.tcu.start_publishing()
 
-    def create_central_device(self) -> "TelematicConstrolUnit":
+    def create_tcu(self) -> "TelematicConstrolUnit":
         return TelematicConstrolUnit(
             [
                 self.mqtt_broker_fleet,
