@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import math
 import tempfile
 from uuid import uuid4
-from random import uniform
+from random import random, uniform
 import time
 import pandas as pd
 import os
@@ -12,6 +12,46 @@ class Sensor(ABC):
     @abstractmethod
     def output(self) -> float:
         pass
+
+
+class O2Sensor:
+    """Simulates a zirconia oxygen sensor."""
+
+    def __init__(self):
+        self.voltage = 0.0
+        self.operating_temperature = 600
+        self.response_time = 0.1
+
+    def measure_exhaust_gas(self, air_fuel_ratio):
+        """
+        Simulate the O2 sensor measuring the exhaust gas and outputting a voltage.
+        :param air_fuel_ratio: The current air-fuel ratio in the engine
+        :return: The voltage output by the sensor
+        """
+        # The sensor's voltage output depends on the AFR:
+        # - Lean mixture (AFR > 14.7): Lower voltage output (0.1 - 0.45 volts)
+        # - Stoichiometric (AFR ≈ 14.7): Mid-range voltage output (~0.45 volts)
+        # - Rich mixture (AFR < 14.7): Higher voltage output (0.45 - 0.9 volts)
+
+        print(air_fuel_ratio)
+
+        if air_fuel_ratio > 14.7:
+            # Lean mixture
+            self.voltage = 0.1 + (
+                (air_fuel_ratio - 14.7) / 10.0
+            )  # Simulate a voltage drop for leaner mixtures
+        elif air_fuel_ratio < 14.7:
+            # Rich mixture
+            self.voltage = 0.9 - (
+                (14.7 - air_fuel_ratio) / 10.0
+            )  # Simulate a voltage increase for richer mixtures
+        else:
+            # Stoichiometric
+            self.voltage = 0.45
+
+        self.voltage = max(0.1, min(self.voltage, 0.9))
+
+        return self.voltage
 
 
 class PressureSensor:
