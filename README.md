@@ -1,6 +1,6 @@
 #  Simulation of a Fleet of Vehicules Publishing Sensor Data using the MQTT Protocol
 
-![](fleet.gif)
+<img src="fleet.gif" alt="Sensor data on terminal" style="display: block; margin: auto;" width=""/>
 
 ## 1. Start the brokers
 
