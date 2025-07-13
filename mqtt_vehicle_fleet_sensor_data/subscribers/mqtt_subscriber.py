@@ -59,8 +59,8 @@ if __name__ == "__main__":
 
     # Configuration
     mqtt_broker = "localhost"
-    port = 1883
-    mqtt_topic = "fleet/gps"
+    port = 1884
+    mqtt_topic = "fleet/van-1"
 
     # Create and start MQTT subscriber
     subscriber = MQTTSubscriber(mqtt_broker, port, mqtt_topic)
