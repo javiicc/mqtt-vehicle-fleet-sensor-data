@@ -38,7 +38,7 @@ def cleanup(executor):
     print("ACTIVE CHILDRENS:\n", active_children())
 
 
-def main(van_number: int = 1, truck_number: int = 0):
+def main(van_number: int = 0, truck_number: int = 0):
     try:
         with ProcessPoolExecutor() as executor:
             # TODO automate routes probabilistically
